@@ -12,5 +12,6 @@ requests-html~=0.10.0
 # repeater
 pydantic~=1.9.0
 pymongo~=3.12.1
-jieba-fast~=0.53
+# jieba-fast~=0.53
+jieba~=0.42.1 # For users without C++
 pypinyin~=0.41.0

@@ -3,7 +3,8 @@ from functools import cached_property, cmp_to_key
 from dataclasses import dataclass
 from collections import defaultdict
 
-import jieba_fast.analyse
+# import jieba_fast as jieba
+import jieba.analyse
 import threading
 import pypinyin
 import pymongo
@@ -66,7 +67,7 @@ class ChatData:
         if not self.is_plain_text and len(self.plain_text) == 0:
             return []
 
-        return jieba_fast.analyse.extract_tags(
+        return jieba.analyse.extract_tags(
             self.plain_text, topK=ChatData._keywords_size)
 
     @cached_property
