@@ -1,0 +1,20 @@
+# main
+nonebot2~=2.0.0b2
+nonebot-adapter-onebot~=2.0.0b1
+
+# # tests
+# pytest~=7.1.2
+
+# greeting
+requests~=2.22.0
+requests-html~=0.10.0
+
+# repeater
+pydantic~=1.9.0
+pymongo~=3.12.1
+jieba-fast~=0.53
+pypinyin~=0.41.0
+
+# dream
+wenxin-api~=0.0.5.1
+asyncer~=0.0.1
