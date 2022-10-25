@@ -108,8 +108,7 @@ def setup_banning_message_handler(is_admin: bool):
         logger.info('repeater | bot [{}] ready to ban [{}] in group [{}]'.format(
             event.self_id, raw_message, event.group_id))
 
-        if Chat.ban(event.group_id, event.self_id, raw_message, str(event.user_id)):
-            await ban_msg.finish('这对角可能会不小心撞倒些家具，我会尽量小心。')
+        Chat.ban(event.group_id, event.self_id, raw_message, str(event.user_id))
 
 
 def setup_banning_latest_message_handler(is_admin: bool):
@@ -127,8 +126,7 @@ def setup_banning_latest_message_handler(is_admin: bool):
             'repeater | bot [{}] ready to ban latest reply in group [{}]'.format(
                 event.self_id, event.group_id))
 
-        if Chat.ban(event.group_id, event.self_id, '', str(event.user_id)):
-            await ban_msg_latest.finish('这对角可能会不小心撞倒些家具，我会尽量小心。')
+        Chat.ban(event.group_id, event.self_id, '', str(event.user_id))
 
 
 def setup_active_speaking_handler():
