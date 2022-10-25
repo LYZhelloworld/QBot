@@ -20,7 +20,7 @@ from src.common.config import BotConfig
 
 mongo_client = pymongo.MongoClient('127.0.0.1', 27017, w=0)
 
-mongo_db = mongo_client['PallasBot']
+mongo_db = mongo_client['QBot']
 
 message_mongo = mongo_db['message']
 message_mongo.create_index(name='time_index',
@@ -90,13 +90,9 @@ class ChatData:
         return ''.join([item[0] for item in pypinyin.pinyin(
             self.keywords, style=pypinyin.NORMAL, errors='default')]).lower()
 
-    @cached_property
-    def to_me(self) -> bool:
-        return self.plain_text.startswith('牛牛')
-
 
 class Chat:
-    answer_threshold = 3            # answer 相关的阈值，值越小牛牛废话越多，越大话越少
+    answer_threshold = 3            # answer 相关的阈值，值越小废话越多，越大话越少
     answer_threshold_weights = [7, 23, 70]  # answer 阈值权重，不知道怎么解释，自己看源码吧（
     cross_group_threshold = 2       # N 个群有相同的回复，就跨群作为全局回复
     repeat_threshold = 3            # 复读的阈值，群里连续多少次有相同的发言，就复读
@@ -183,16 +179,9 @@ class Chat:
         '''
         回复这句话，可能会分多次回复，也可能不回复
         '''
-        # 不回复太短的对话，大部分是“？”、“草”
+        # 不回复太短的对话
         if self.chat_data.is_plain_text and len(self.chat_data.plain_text) < 2:
             return None
-
-        # # 不要一直回复同一个内容
-        # if self.chat_data.raw_message == latest_reply['pre_raw_message']:
-        #     return None
-        # 有人复读了牛牛的回复，不继续回复
-        # if self.chat_data.raw_message == latest_reply['reply']:
-        #    return None
 
         results = self._context_find()
         if not results:
@@ -209,8 +198,8 @@ class Chat:
                 'time': int(time.time()),
                 'pre_raw_message': raw_message,
                 'pre_keywords': keywords,
-                'reply': '[PallasBot: Reply]',  # flag
-                'reply_keywords': '[PallasBot: Reply]',  # flag
+                'reply': '[QBot: Reply]',  # flag
+                'reply_keywords': '[QBot: Reply]',  # flag
             })
 
         def yield_results(results: Tuple[List[str], str]) -> Generator[Message, None, None]:
@@ -278,7 +267,7 @@ class Chat:
             if not len(group_replies) or len(group_msgs) < basic_msgs_len:
                 continue
 
-            # 一般来说所有牛牛都是一起回复的，最后发言时间应该是一样的，随意随便选一个[0]就好了
+            # 一般来说所有机器人都是一起回复的，最后发言时间应该是一样的，随意随便选一个[0]就好了
             group_replies_front = list(group_replies.values())[0]
             if not len(group_replies_front) or \
                     group_replies_front[-1]['time'] > group_msgs[-1]['time']:
@@ -299,10 +288,10 @@ class Chat:
             with Chat._reply_lock:
                 group_replies_front.append({
                     'time': int(cur_time),
-                    'pre_raw_message': '[PallasBot: Speak]',
-                    'pre_keywords': '[PallasBot: Speak]',
-                    'reply': '[PallasBot: Speak]',
-                    'reply_keywords': '[PallasBot: Speak]',
+                    'pre_raw_message': '[QBot: Speak]',
+                    'pre_keywords': '[QBot: Speak]',
+                    'reply': '[QBot: Speak]',
+                    'reply_keywords': '[QBot: Speak]',
                 })
 
             available_time = cur_time - 24 * 3600
@@ -366,10 +355,10 @@ class Chat:
             with Chat._reply_lock:
                 group_replies[bot_id].append({
                     'time': int(cur_time),
-                    'pre_raw_message': '[PallasBot: Speak]',
-                    'pre_keywords': '[PallasBot: Speak]',
+                    'pre_raw_message': '[QBot: Speak]',
+                    'pre_keywords': '[QBot: Speak]',
                     'reply': speak,
-                    'reply_keywords': '[PallasBot: Speak]',
+                    'reply_keywords': '[QBot: Speak]',
                 })
 
             speak_list = [Message(speak), ]
@@ -410,7 +399,7 @@ class Chat:
                 ban_reply = reply
                 break
 
-        # 这种情况一般是有些 CQ 码，牛牛发送的时候，和被回复的时候，里面的内容不一样
+        # 这种情况一般是有些 CQ 码，发送的时候，和被回复的时候，里面的内容不一样
         if not ban_reply:
             search = re.search(r'(\[CQ:[a-zA-z0-9-_.]+)',
                                ban_raw_message)
@@ -461,7 +450,7 @@ class Chat:
         return True
 
 # private:
-    _reply_dict = defaultdict(lambda: defaultdict(list))  # 牛牛回复的消息缓存，暂未做持久化
+    _reply_dict = defaultdict(lambda: defaultdict(list))  # 回复的消息缓存，暂未做持久化
     _message_dict = {}              # 群消息缓存
 
     _answer_threshold_choice_list = list(
@@ -654,10 +643,7 @@ class Chat:
             if self.chat_data.keywords_len == ChatData._keywords_size:
                 answer_count_threshold -= 1
 
-        if self.chat_data.to_me:
-            cross_group_threshold = 1
-        else:
-            cross_group_threshold = Chat.cross_group_threshold
+        cross_group_threshold = Chat.cross_group_threshold
 
         ban_keywords = Chat._find_ban_keywords(
             context=context, group_id=group_id)
@@ -688,10 +674,6 @@ class Chat:
             sample_msg = answer['messages'][0]
             if self.chat_data.is_image and '[CQ:' not in sample_msg:
                 # 图片消息不回复纯文本。图片经常是表情包，后面的纯文本啥都有，很乱
-                continue
-            if not self.chat_data.to_me and sample_msg.startswith('牛牛'):
-                # 这种一般是学反过来的，比如有人教“牛牛你好”——“你好”（反复发了好几次，互为上下文了）
-                # 然后下次有人发“你好”，突然回个“牛牛你好”，有点莫名其妙的
                 continue
             if sample_msg.startswith("[CQ:xml"):
                 continue

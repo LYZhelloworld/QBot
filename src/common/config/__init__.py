@@ -15,7 +15,7 @@ class Config(ABC):
     def _get_config_mongo(cls) -> Collection:
         if cls._config_mongo is None:
             mongo_client = pymongo.MongoClient('127.0.0.1', 27017, w=0)
-            mongo_db = mongo_client['PallasBot']
+            mongo_db = mongo_client['QBot']
             cls._config_mongo = mongo_db[cls._table]
             cls._config_mongo.create_index(name='{}_index'.format(cls._key),
                                            keys=[(cls._key, pymongo.HASHED)])
@@ -62,15 +62,13 @@ class BotConfig(Config):
         '''
         账号是否安全（不处于风控等异常状态）
         '''
-        security = self._find_key('security')
-        return True if security else False
+        return bool(self._find_key('security'))
 
     def auto_accept(self) -> bool:
         '''
         是否自动接受加群、加好友请求
         '''
-        accept = self._find_key('auto_accept')
-        return True if accept else False
+        return bool(self._find_key('auto_accept'))
 
     def is_admin(self, user_id: int) -> bool:
         '''
@@ -120,45 +118,6 @@ class BotConfig(Config):
         BotConfig._cooldown_data[self.bot_id][self.group_id][action_type] = time.time(
         )
 
-    _drunk_data = defaultdict(lambda: defaultdict(int))     # 醉酒程度，不同群应用不同的数值
-    _sleep_until = defaultdict(lambda: defaultdict(int))    # 牛牛起床的时间
-
-    def drink(self) -> None:
-        '''
-        喝酒功能，增加牛牛的混沌程度（bushi
-        '''
-        BotConfig._drunk_data[self.bot_id][self.group_id] += 1
-
-    def sober_up(self) -> bool:
-        '''
-        醒酒，降低醉酒程度，返回是否完全醒酒
-        '''
-        BotConfig._drunk_data[self.bot_id][self.group_id] -= 1
-        return BotConfig._drunk_data[self.bot_id][self.group_id] <= 0
-
-    def drunkenness(self) -> int:
-        '''
-        获取醉酒程度
-        '''
-        return BotConfig._drunk_data[self.bot_id][self.group_id]
-
-    def is_sleep(self) -> bool:
-        '''
-        牛牛睡了么？
-        '''
-        return BotConfig._sleep_until[self.bot_id][self.group_id] > time.time()
-
-    def sleep(self, seconds: int) -> None:
-        '''
-        牛牛睡觉
-        '''
-        BotConfig._sleep_until[self.bot_id][self.group_id] = time.time(
-        ) + seconds
-
-    @staticmethod
-    def completely_sober():
-        BotConfig._drunk_data = defaultdict(lambda: defaultdict(int))
-
 
 class GroupConfig(Config):
     def __init__(self, group_id: int, cooldown: int = 5) -> None:
@@ -169,33 +128,6 @@ class GroupConfig(Config):
 
         self.group_id = group_id
         self.cooldown = cooldown
-
-    _roulette_mode = {}    # 0 踢人 1 禁言
-
-    def roulette_mode(self) -> int:
-        '''
-        获取轮盘模式
-
-        :return: 0 踢人 1 禁言
-        '''
-        if self.group_id not in GroupConfig._roulette_mode:
-            mode = self._find_key('roulette_mode')
-            GroupConfig._roulette_mode[self.group_id] = mode if mode is not None else 0
-
-        return GroupConfig._roulette_mode[self.group_id]
-
-    def set_roulette_mode(self, mode: int) -> None:
-        '''
-        设置轮盘模式
-
-        :param mode: 0 踢人 1 禁言
-        '''
-        GroupConfig._roulette_mode[self.group_id] = mode
-        self._get_config_mongo().update_one(
-            self._mongo_find_key,
-            {'$set': {'roulette_mode': mode}},
-            upsert=True
-        )
 
     _ban_cache = {}
 

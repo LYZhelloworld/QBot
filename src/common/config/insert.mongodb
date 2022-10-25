@@ -1,7 +1,7 @@
 // MongoDB Playground
 // Use Ctrl+Space inside a snippet or a string literal to trigger completions.
 
-const database = 'PallasBot';
+const database = 'QBot';
 const collection = 'config';
 
 // The current database to use.
