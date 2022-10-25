@@ -13,7 +13,7 @@ import re
 import atexit
 
 from nonebot.adapters.onebot.v11 import GroupMessageEvent, PrivateMessageEvent
-from nonebot.adapters.onebot.v11 import Message, MessageSegment
+from nonebot.adapters.onebot.v11 import Message
 
 from src.common.config import BotConfig
 
